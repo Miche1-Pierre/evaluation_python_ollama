@@ -10,7 +10,10 @@ class FakeClient:
 
     def analyze(self, ticket, feedback=None):
         self.calls += 1
-        Analysis.model_validate_json("{}")
+        return Analysis.model_validate_json("{}")
+
+    def draft_reply(self, ticket):
+        return "Brouillon"
 
 
 class FakePolicy:
@@ -33,5 +36,5 @@ def test_failed_client_reaches_to_check_after_two_attempts():
     assert client.calls == 2
     assert result.status == "to_check"
     assert result.analysis is None
-    assert result.draft is None
+    assert result.draft == "Brouillon"
     assert result.escalation == "human_review"
