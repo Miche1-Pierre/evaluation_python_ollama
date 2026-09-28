@@ -92,7 +92,7 @@ class MarkdownReport:
                 f"| {result.ticket.player} "
                 f"| {CATEGORY_LABELS[category]} "
                 f"| {severity} "
-                f"| {ESCALATION_LABELS.get(result.escalation, '-')} "
+                f"| {ESCALATION_LABELS.get(result.escalation or '', '-')} "
                 f"| {summary} |"
             )
 

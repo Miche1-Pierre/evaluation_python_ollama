@@ -20,7 +20,8 @@ class TicketCleaner:
 
             except ValidationError as exc:
                 item_id = item.get("id") if isinstance(item, dict) else None
-                self._reject(item_id, f"ticket invalide ({exc.error_count()} erreur(s))")
+                fields = ", ".join(str(error["loc"][0]) for error in exc.errors() if error["loc"])
+                self._reject(item_id, f"ticket invalide (champ : {fields or 'format'})")
                 continue
 
             key = (ticket.player, ticket.message.casefold())
