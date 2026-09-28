@@ -33,6 +33,7 @@ class MarkdownReport:
         self.ignored_count = ignored_count
         self.model = model
         self.stats = TriageStats(results)
+        self.to_check = [result for result in results if result.needs_review]
 
     def render(self) -> str:
         lines = self._header() + self._summary() + self._escalated() + self._to_check()
@@ -56,7 +57,7 @@ class MarkdownReport:
             f"- Tickets reçus : **{self.received_count}**",
             f"- Tickets analysés : **{analyzed}**",
             f"- Tickets ignorés (vides, invalides ou doublons) : **{self.ignored_count}**",
-            f"- Tickets à vérifier : **{len(self.results) - analyzed}**",
+            f"- Tickets à vérifier : **{len(self.to_check)}**",
             f"- Urgence moyenne : **{self.stats.average_severity():.2f} / 5**",
             "",
             "| Catégorie | Nombre |",
@@ -100,16 +101,10 @@ class MarkdownReport:
     def _to_check(self) -> list[str]:
         lines = ["", "## Tickets à vérifier", ""]
 
-        to_check = [
-            result
-            for result in self.results
-            if result.status == "to_check" or result.suspicious
-        ]
-
-        if not to_check:
+        if not self.to_check:
             lines.append("Aucun ticket à vérifier.")
 
-        for result in to_check:
+        for result in self.to_check:
             reason = (
                 "tentative de manipulation du bot"
                 if result.suspicious

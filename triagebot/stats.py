@@ -1,7 +1,7 @@
 from collections import Counter
 from heapq import nlargest
 
-from triagebot.models import TriageResult
+from triagebot.models import Analysis, TriageResult
 
 
 class TriageStats:
@@ -9,37 +9,30 @@ class TriageStats:
         self.results = results
 
     def categories(self) -> dict[str, int]:
-        counter = Counter()
+        counter: Counter[str] = Counter(
+            "to_check" for result in self.results if result.needs_review
+        )
 
-        for result in self.results:
-            if result.status == "to_check":
-                counter["to_check"] += 1
-            elif result.analysis is not None:
-                counter[result.analysis.category] += 1
+        for _, analysis in self._trusted():
+            counter[analysis.category] += 1
 
         return dict(counter)
 
     def average_severity(self) -> float:
-        severities = [
-            result.analysis.severity
-            for result in self.results
-            if result.status == "ok" and result.analysis is not None
-        ]
+        severities = [analysis.severity for _, analysis in self._trusted()]
 
         if not severities:
             return 0.0
 
         return sum(severities) / len(severities)
 
-    def top_3(self) -> list[TriageResult]:
-        analyzed = [
-            result
-            for result in self.results
-            if result.status == "ok" and result.analysis is not None
-        ]
+    def top_3(self) -> list[tuple[TriageResult, Analysis]]:
+        return nlargest(3, self._trusted(), key=lambda pair: pair[1].severity)
 
-        return nlargest(
-            3,
-            analyzed,
-            key=lambda result: result.analysis.severity,
-        )
+    def _trusted(self) -> list[tuple[TriageResult, Analysis]]:
+        """Tickets analysés dont on peut croire l'analyse (ni to_check ni suspects)."""
+        return [
+            (result, result.analysis)
+            for result in self.results
+            if result.analysis is not None and not result.needs_review
+        ]

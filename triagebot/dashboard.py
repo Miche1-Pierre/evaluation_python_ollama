@@ -16,7 +16,5 @@ class Dashboard:
 
         print("\n=== Top 3 urgences ===")
 
-        for result in self.stats.top_3():
-            print(
-                f"ticket {result.ticket.id:<4} " f"urgence {result.analysis.severity}"
-            )
+        for result, analysis in self.stats.top_3():
+            print(f"ticket {result.ticket.id:<4} urgence {analysis.severity}")

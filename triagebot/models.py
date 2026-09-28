@@ -30,3 +30,7 @@ class TriageResult(BaseModel):
     draft: str | None = None
     escalation: Escalation | None = None
     suspicious: bool = False
+
+    @property
+    def needs_review(self) -> bool:
+        return self.status == "to_check" or self.suspicious
