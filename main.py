@@ -11,6 +11,9 @@ from triagebot.storage import JsonFile
 from triagebot.triage import TriageService
 from triagebot.cleaning import TicketCleaner
 
+from triagebot.dashboard import Dashboard
+from triagebot.stats import TriageStats
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -32,7 +35,6 @@ def main():
 
     raw_tickets = input_storage.read()
     tickets = cleaner.clean(raw_tickets)
-    print(cleaner.rejected)
 
     results = []
 
@@ -41,6 +43,10 @@ def main():
         results.append(service.triage(ticket))
 
     output_storage.write([result.model_dump(mode="json") for result in results])
+
+    stats = TriageStats(results)
+    dashboard = Dashboard(stats)
+    dashboard.display()
 
 
 if __name__ == "__main__":
