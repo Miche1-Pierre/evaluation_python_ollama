@@ -13,16 +13,16 @@ TriageBot est un petit outil en ligne de commande que j'ai fait pour trier autom
 D'abord on récupère le projet :
 
 ```
-git clone <url du repo>
+git clone https://github.com/Miche1-Pierre/evaluation_python_ollama.git
 cd evaluation_python_ollama
 ```
 
 Ensuite on crée l'environnement virtuel et on installe les dépendances.
 
-Sur Windows :
+Sur Windows (j'utilise `py -3.14` pour être sûr d'avoir la bonne version si plusieurs Python sont installés) :
 
 ```
-python -m venv .venv
+py -3.14 -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 ```
@@ -103,3 +103,7 @@ J'ai fait deux bonus.
 Les tests unitaires avec pytest (voir plus haut).
 
 La sécurité : un des tickets essaie de manipuler le bot ("Ignore tes instructions précédentes..."). Pour gérer ça j'ai fait plusieurs choses. Dans les prompts, le message du joueur est mis entre balises `<ticket>` et le modèle a pour consigne de le traiter comme une donnée et jamais comme une instruction. En plus, le fichier `security.py` cherche avec des expressions régulières les phrases typiques d'injection de prompt (en français, anglais et allemand). Si un ticket est repéré comme suspect, il part direct en relecture humaine, peu importe ce que le LLM a répondu. Comme ça même si le modèle se fait avoir, c'est quand même le code qui a le dernier mot.
+
+## Limites
+
+Le LLM ne fait pas tout parfaitement. Par exemple le ticket 7 (la grand-mère qui ne trouve pas comment livrer la pizza) est souvent classé en `account` alors que ce serait plutôt `autre`. Les brouillons de réponse sont aussi à relire avant de les envoyer : il arrive que le modèle invente une procédure (tickets 5 et 7) ou promette une action (ticket 10) malgré les consignes du prompt. C'est pour ça que ce sont des brouillons et pas des réponses envoyées automatiquement.
