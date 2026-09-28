@@ -1,15 +1,53 @@
+import argparse
+
+from triagebot.config import DEFAULT_MODEL
+from triagebot.llm import OllamaClient
 from triagebot.models import Ticket
 from triagebot.storage import JsonFile
-from triagebot.llm import OllamaClient
+from triagebot.triage import TriageService
 
-file = JsonFile("tickets.json")
-data = file.read()
-client = OllamaClient("qwen2.5:7b-instruct")
 
-tickets = [Ticket.model_validate(ticket) for ticket in data]
-analysis = client.analyze(tickets[0])
+def main():
+    parser = argparse.ArgumentParser()
 
-print("Category:", analysis.category)
-print("Sentiment:", analysis.sentiment)
-print("Severity:", analysis.severity)
-print("Summary:", analysis.summary)
+    parser.add_argument(
+        "--input",
+        default="tickets.json",
+    )
+
+    parser.add_argument(
+        "--output",
+        default="results.json",
+    )
+
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+    )
+
+    args = parser.parse_args()
+
+    input_file = JsonFile(args.input)
+    output_file = JsonFile(args.output)
+
+    data = input_file.read()
+    tickets = [Ticket.model_validate(ticket) for ticket in data]
+
+    client = OllamaClient(args.model)
+    service = TriageService(client)
+
+    results = []
+
+    for index, ticket in enumerate(tickets, start = 1):
+        print(f"[{index}/{len(tickets)}] ticket {ticket.id}…")
+
+        result = service.triage(ticket)
+        results.append(result)
+
+    output_data = [result.model_dump(mode = "json") for result in results]
+
+    output_file.write(output_data)
+
+
+if __name__ == "__main__":
+    main()

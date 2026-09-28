@@ -1,12 +1,13 @@
 import ollama
 
+from triagebot.config import HOST
 from triagebot.models import Analysis, Ticket
 from triagebot.prompts import SYSTEM_PROMPT
 
 
 class OllamaClient:
     def __init__(self, model):
-        self.client = ollama.Client(host="http://127.0.0.1:11434")
+        self.client = ollama.Client(host=HOST)
         self.model = model
 
     def analyze(self, ticket: Ticket) -> Analysis:
