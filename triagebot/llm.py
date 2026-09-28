@@ -3,6 +3,7 @@ import ollama
 from triagebot.config import HOST
 from triagebot.models import Analysis, Ticket
 from triagebot.prompts import SYSTEM_PROMPT
+from triagebot.errors import TriageError
 
 
 class OllamaClient:
@@ -35,3 +36,18 @@ class OllamaClient:
         )
 
         return Analysis.model_validate_json(response.message.content)
+
+    def check_ready(self):
+        try:
+            self.client.show(self.model)
+
+        except ConnectionError as exc:
+            raise TriageError(
+                "Ollama n'est pas lancé ou n'est pas accessible."
+            ) from exc
+
+        except ollama.ResponseError as exc:
+            if exc.status_code == 404:
+                raise TriageError(f"Modèle Ollama introuvable : {self.model}") from exc
+
+            raise TriageError(f"Erreur Ollama : {exc}") from exc

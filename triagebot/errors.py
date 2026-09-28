@@ -1,0 +1,2 @@
+class TriageError(Exception):
+    pass

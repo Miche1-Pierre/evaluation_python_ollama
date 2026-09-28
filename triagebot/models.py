@@ -22,5 +22,3 @@ class TriageResult(BaseModel):
     analysis: Analysis | None = None
     status: Literal["ok", "to_check"]
 
-
-print(Analysis.model_json_schema())
