@@ -3,6 +3,22 @@ from datetime import datetime
 from triagebot.models import TriageResult
 from triagebot.stats import TriageStats
 
+CATEGORY_LABELS = {
+    "bug": "Bug",
+    "payment": "Paiement",
+    "account": "Compte",
+    "suggestion": "Suggestion",
+    "toxicity": "Toxicité",
+    "autre": "Autre",
+    "to_check": "À vérifier",
+}
+
+ESCALATION_LABELS = {
+    "moderation": "Modération",
+    "support_manager": "Responsable support",
+    "human_review": "Relecture humaine",
+}
+
 
 class MarkdownReport:
     def __init__(
@@ -16,114 +32,91 @@ class MarkdownReport:
         self.received_count = received_count
         self.ignored_count = ignored_count
         self.model = model
+        self.stats = TriageStats(results)
 
     def render(self) -> str:
-        stats = TriageStats(self.results)
+        lines = self._header() + self._summary() + self._escalated() + self._to_check()
+        return "\n".join(lines)
 
-        analyzed_count = sum(1 for result in self.results if result.status == "ok")
-
-        to_check_count = sum(
-            1 for result in self.results if result.status == "to_check"
-        )
-
-        categories = stats.categories()
-
-        lines = [
+    def _header(self) -> list[str]:
+        return [
             "# Rapport de triage",
             "",
             f"**Date :** {datetime.now().strftime('%d/%m/%Y %H:%M')}",
             f"**Modèle :** {self.model}",
+        ]
+
+    def _summary(self) -> list[str]:
+        analyzed = sum(1 for result in self.results if result.status == "ok")
+
+        lines = [
             "",
             "## Synthèse",
             "",
             f"- Tickets reçus : **{self.received_count}**",
-            f"- Tickets analysés : **{analyzed_count}**",
-            f"- Tickets ignorés : **{self.ignored_count}**",
-            f"- Tickets à vérifier : **{to_check_count}**",
-            "",
-            "### Tickets par catégorie",
+            f"- Tickets analysés : **{analyzed}**",
+            f"- Tickets ignorés (vides, invalides ou doublons) : **{self.ignored_count}**",
+            f"- Tickets à vérifier : **{len(self.results) - analyzed}**",
+            f"- Urgence moyenne : **{self.stats.average_severity():.2f} / 5**",
             "",
             "| Catégorie | Nombre |",
             "|---|---:|",
         ]
 
-        for category, count in categories.items():
-            label = {
-                "bug": "Bug",
-                "feature_request": "Demande de fonctionnalité",
-                "billing": "Facturation",
-                "account": "Compte",
-                "how_to": "Aide / mode d'emploi",
-                "other": "Autre",
-                "to_check": "À vérifier",
-            }.get(category, category)
+        for category, count in self.stats.categories().items():
+            lines.append(f"| {CATEGORY_LABELS.get(category, category)} | {count} |")
 
-            lines.append(f"| {label} | {count} |")
+        return lines
 
-        lines.extend(
-            [
-                "",
-                f"**Urgence moyenne :** {stats.average_severity():.2f}",
-                "",
-                "## Tickets à escalader",
-                "",
-                "| N° | Joueur | Catégorie | Urgence | Destinataire | Résumé |",
-                "|---:|---|---|---:|---|---|",
-            ]
-        )
-
-        escalated = [
-            result for result in self.results if result.escalation != "standard"
+    def _escalated(self) -> list[str]:
+        lines = [
+            "",
+            "## Tickets à escalader",
+            "",
+            "| N° | Joueur | Catégorie | Urgence | Destinataire | Résumé |",
+            "|---:|---|---|---:|---|---|",
         ]
 
-        for result in escalated:
-            analysis = result.analysis
-
-            if analysis is None:
+        for result in self.results:
+            if result.escalation == "standard":
                 continue
 
-            destination = {
-                "moderation": "Modération",
-                "support_manager": "Responsable support",
-                "human_review": "Revue humaine",
-            }.get(result.escalation, result.escalation)
-
-            category_label = {
-                "bug": "Bug",
-                "feature_request": "Demande de fonctionnalité",
-                "billing": "Facturation",
-                "account": "Compte",
-                "how_to": "Aide / mode d'emploi",
-                "other": "Autre",
-            }.get(analysis.category, analysis.category)
-
-            summary = analysis.summary.replace("|", "\\|")
+            analysis = result.analysis
+            category = analysis.category if analysis else "to_check"
+            severity = analysis.severity if analysis else "-"
+            summary = analysis.summary.replace("|", "\\|") if analysis else "-"
 
             lines.append(
                 f"| {result.ticket.id} "
                 f"| {result.ticket.player} "
-                f"| {category_label} "
-                f"| {analysis.severity} "
-                f"| {destination} "
+                f"| {CATEGORY_LABELS[category]} "
+                f"| {severity} "
+                f"| {ESCALATION_LABELS.get(result.escalation, '-')} "
                 f"| {summary} |"
             )
 
-        lines.extend(
-            [
-                "",
-                "## Tickets à vérifier",
-                "",
-            ]
-        )
+        return lines
 
-        to_check = [result for result in self.results if result.status == "to_check"]
+    def _to_check(self) -> list[str]:
+        lines = ["", "## Tickets à vérifier", ""]
+
+        to_check = [
+            result
+            for result in self.results
+            if result.status == "to_check" or result.suspicious
+        ]
 
         if not to_check:
             lines.append("Aucun ticket à vérifier.")
 
         for result in to_check:
+            reason = (
+                "tentative de manipulation du bot"
+                if result.suspicious
+                else "analyse automatique impossible"
+            )
             lines.append(
-                f"- **Ticket {result.ticket.id}** — " f"{result.ticket.player}"
+                f"- **Ticket {result.ticket.id}** ({result.ticket.player}) : {reason}"
             )
 
-        return "\n".join(lines)
+        return lines
