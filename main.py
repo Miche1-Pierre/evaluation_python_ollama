@@ -1,68 +1,65 @@
 import argparse
 import sys
+from pathlib import Path
 
-from pydantic import ValidationError
-
-from triagebot.config import DEFAULT_MODEL
+from triagebot.cleaning import TicketCleaner
+from triagebot.config import DEFAULT_INPUT, DEFAULT_MODEL, DEFAULT_OUTPUT, DEFAULT_REPORT
+from triagebot.dashboard import Dashboard
 from triagebot.errors import TriageError
+from triagebot.escalation import EscalationPolicy
 from triagebot.llm import OllamaClient
-from triagebot.models import Ticket
+from triagebot.models import Ticket, TriageResult
+from triagebot.report import MarkdownReport
+from triagebot.stats import TriageStats
 from triagebot.storage import JsonFile
 from triagebot.triage import TriageService
-from triagebot.cleaning import TicketCleaner
-from triagebot.escalation import EscalationPolicy
-
-from triagebot.dashboard import Dashboard
-from triagebot.stats import TriageStats
-
-from triagebot.report import MarkdownReport
 
 
-def main():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--input", default="tickets.json")
-    parser.add_argument("--output", default="results.json")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="TriageBot : tri des tickets support")
+    parser.add_argument("--input", default=DEFAULT_INPUT)
+    parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument("--report", default=DEFAULT_REPORT)
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
-    input_storage = JsonFile(args.input)
-    output_storage = JsonFile(args.output)
-
-    client = OllamaClient(args.model)
-    policy = EscalationPolicy()
-    service = TriageService(client, policy)
-    cleaner = TicketCleaner()
-
-    client.check_ready()
-
-    raw_tickets = input_storage.read()
-    received_count = len(raw_tickets)
-
-    tickets = cleaner.clean(raw_tickets)
-
+def triage_all(service: TriageService, tickets: list[Ticket]) -> list[TriageResult]:
     results = []
 
     for index, ticket in enumerate(tickets, start=1):
         print(f"[{index}/{len(tickets)}] ticket {ticket.id}…")
         results.append(service.triage(ticket))
 
-    output_storage.write([result.model_dump(mode="json") for result in results])
+    return results
 
-    stats = TriageStats(results)
-    dashboard = Dashboard(stats)
-    dashboard.display()
+
+def main() -> None:
+    args = parse_args()
+
+    client = OllamaClient(args.model)
+    client.check_ready()
+
+    raw_tickets = JsonFile(args.input).read()
+    cleaner = TicketCleaner()
+    tickets = cleaner.clean(raw_tickets)
+
+    service = TriageService(client, EscalationPolicy())
+    results = triage_all(service, tickets)
+
+    JsonFile(args.output).write([result.model_dump(mode="json") for result in results])
+
+    Dashboard(TriageStats(results)).display()
 
     report = MarkdownReport(
         results=results,
-        received_count=received_count,
+        received_count=len(raw_tickets),
         ignored_count=len(cleaner.rejected),
         model=args.model,
     )
+    Path(args.report).write_text(report.render(), encoding="utf-8")
 
-    print("\n=== Rapport Markdown ===")
-    print(report.render())
+    print(f"\nRésultats : {args.output} | Rapport : {args.report}")
 
 
 if __name__ == "__main__":

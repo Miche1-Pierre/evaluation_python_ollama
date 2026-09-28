@@ -1,17 +1,18 @@
+from typing import Any
+
 from pydantic import ValidationError
 
 from triagebot.models import Ticket
 
 
 class TicketCleaner:
-    def __init__(self):
-        self.rejected = []
+    def __init__(self) -> None:
+        self.rejected: list[dict[str, Any]] = []
 
-    def clean(self, raw_items) -> list[Ticket]:
+    def clean(self, raw_items: list[Any]) -> list[Ticket]:
         tickets = []
         self.rejected = []
-
-        seen = {}
+        seen: dict[tuple[str, str], int] = {}
 
         for item in raw_items:
             try:
@@ -19,32 +20,20 @@ class TicketCleaner:
 
             except ValidationError as exc:
                 item_id = item.get("id") if isinstance(item, dict) else None
-
-                self.rejected.append(
-                    {
-                        "id": item_id,
-                        "reason": str(exc),
-                    }
-                )
+                self._reject(item_id, f"ticket invalide ({exc.error_count()} erreur(s))")
                 continue
 
-            key = (
-                ticket.player,
-                ticket.message.strip().casefold(),
-            )
+            key = (ticket.player, ticket.message.casefold())
 
             if key in seen:
-                print(f"ticket {ticket.id} ignoré : " f"doublon du ticket {seen[key]}")
-
-                self.rejected.append(
-                    {
-                        "id": ticket.id,
-                        "reason": f"doublon du ticket {seen[key]}",
-                    }
-                )
+                self._reject(ticket.id, f"doublon du ticket {seen[key]}")
                 continue
 
             seen[key] = ticket.id
             tickets.append(ticket)
 
         return tickets
+
+    def _reject(self, ticket_id: Any, reason: str) -> None:
+        print(f"ticket {ticket_id} ignoré : {reason}")
+        self.rejected.append({"id": ticket_id, "reason": reason})

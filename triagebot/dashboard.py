@@ -5,7 +5,7 @@ class Dashboard:
     def __init__(self, stats: TriageStats):
         self.stats = stats
 
-    def display(self):
+    def display(self) -> None:
         print("\n=== Tickets par catégorie ===")
 
         for category, count in self.stats.categories().items():

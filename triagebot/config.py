@@ -3,6 +3,7 @@ HOST = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:7b-instruct"
 DEFAULT_INPUT = "tickets.json"
 DEFAULT_OUTPUT = "results.json"
+DEFAULT_REPORT = "report.md"
 
 MAX_ATTEMPTS = 2
 ESCALATION_PAYMENT_SEVERITY = 4
