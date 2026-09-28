@@ -1,6 +1,5 @@
 import argparse
 import sys
-from pathlib import Path
 
 from triagebot.cleaning import TicketCleaner
 from triagebot.config import DEFAULT_INPUT, DEFAULT_MODEL, DEFAULT_OUTPUT, DEFAULT_REPORT
@@ -11,7 +10,7 @@ from triagebot.llm import OllamaClient
 from triagebot.models import Ticket, TriageResult
 from triagebot.report import MarkdownReport
 from triagebot.stats import TriageStats
-from triagebot.storage import JsonFile
+from triagebot.storage import JsonFile, write_text
 from triagebot.triage import TriageService
 
 
@@ -57,7 +56,7 @@ def main() -> None:
         ignored_count=len(cleaner.rejected),
         model=args.model,
     )
-    Path(args.report).write_text(report.render(), encoding="utf-8")
+    write_text(args.report, report.render())
 
     print(f"\nRésultats : {args.output} | Rapport : {args.report}")
 
