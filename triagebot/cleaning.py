@@ -35,6 +35,13 @@ class TicketCleaner:
 
             if key in seen:
                 print(f"ticket {ticket.id} ignoré : " f"doublon du ticket {seen[key]}")
+
+                self.rejected.append(
+                    {
+                        "id": ticket.id,
+                        "reason": f"doublon du ticket {seen[key]}",
+                    }
+                )
                 continue
 
             seen[key] = ticket.id

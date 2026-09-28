@@ -15,6 +15,8 @@ from triagebot.escalation import EscalationPolicy
 from triagebot.dashboard import Dashboard
 from triagebot.stats import TriageStats
 
+from triagebot.report import MarkdownReport
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -36,6 +38,8 @@ def main():
     client.check_ready()
 
     raw_tickets = input_storage.read()
+    received_count = len(raw_tickets)
+
     tickets = cleaner.clean(raw_tickets)
 
     results = []
@@ -49,6 +53,16 @@ def main():
     stats = TriageStats(results)
     dashboard = Dashboard(stats)
     dashboard.display()
+
+    report = MarkdownReport(
+        results=results,
+        received_count=received_count,
+        ignored_count=len(cleaner.rejected),
+        model=args.model,
+    )
+
+    print("\n=== Rapport Markdown ===")
+    print(report.render())
 
 
 if __name__ == "__main__":
