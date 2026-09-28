@@ -6,8 +6,9 @@ from triagebot.models import Ticket, TriageResult
 
 
 class TriageService:
-    def __init__(self, client: OllamaClient):
+    def __init__(self, client: OllamaClient, escalation_policy):
         self.client = client
+        self.escalation_policy = escalation_policy
 
     def triage(self, ticket: Ticket) -> TriageResult:
         feedback = None
@@ -17,22 +18,25 @@ class TriageService:
                 analysis = self.client.analyze(ticket, feedback)
                 draft = self.client.draft_reply(ticket)
 
-                return TriageResult(
+                result = TriageResult(
                     ticket=ticket,
                     analysis=analysis,
                     status="ok",
                     draft=draft if draft.strip() else None,
                 )
 
+                result.escalation = self.escalation_policy.decide(result)
+                return result
+
             except ValidationError as exc:
                 feedback = str(exc)
 
-        return TriageResult(
-            ticket=ticket,
-            analysis=None,
-            status="to_check",
-            draft=None
+        result = TriageResult(
+            ticket=ticket, analysis=None, status="to_check", draft=None
         )
+
+        result.escalation = self.escalation_policy.decide(result)
+        return result
 
     def run(self, tickets: list[Ticket]) -> list[TriageResult]:
         results = []

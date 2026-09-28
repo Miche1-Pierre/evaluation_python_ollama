@@ -10,6 +10,7 @@ from triagebot.models import Ticket
 from triagebot.storage import JsonFile
 from triagebot.triage import TriageService
 from triagebot.cleaning import TicketCleaner
+from triagebot.escalation import EscalationPolicy
 
 from triagebot.dashboard import Dashboard
 from triagebot.stats import TriageStats
@@ -28,7 +29,8 @@ def main():
     output_storage = JsonFile(args.output)
 
     client = OllamaClient(args.model)
-    service = TriageService(client)
+    policy = EscalationPolicy()
+    service = TriageService(client, policy)
     cleaner = TicketCleaner()
 
     client.check_ready()

@@ -16,6 +16,7 @@ class Analysis(BaseModel):
     sentiment: Literal["positive", "neutral", "negative"]
     severity: int = Field(ge=1, le=5)
     summary: str = Field(min_length=1)
+    toxicity: bool
 
     model_config = ConfigDict(extra="forbid")
 
@@ -25,3 +26,12 @@ class TriageResult(BaseModel):
     analysis: Analysis | None = None
     status: Literal["ok", "to_check"]
     draft: str | None = None
+    escalation: (
+        Literal[
+            "moderation",
+            "support_manager",
+            "human_review",
+            "standard",
+        ]
+        | None
+    ) = None
