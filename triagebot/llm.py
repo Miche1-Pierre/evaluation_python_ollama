@@ -2,7 +2,7 @@ import ollama
 
 from triagebot.config import HOST
 from triagebot.models import Analysis, Ticket
-from triagebot.prompts import SYSTEM_PROMPT
+from triagebot.prompts import SYSTEM_PROMPT, DRAFT_REPLY_SYSTEM_PROMPT
 from triagebot.errors import TriageError
 
 
@@ -51,3 +51,25 @@ class OllamaClient:
                 raise TriageError(f"Modèle Ollama introuvable : {self.model}") from exc
 
             raise TriageError(f"Erreur Ollama : {exc}") from exc
+
+    def draft_reply(self, ticket: Ticket) -> str:
+        user_message = f"<ticket>{ticket.message}</ticket>"
+
+        response = self.client.chat(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": DRAFT_REPLY_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": user_message,
+                },
+            ],
+            options={
+                "temperature": 0.3,
+            },
+        )
+
+        return response.message.content.strip()

@@ -24,3 +24,4 @@ class TriageResult(BaseModel):
     ticket: Ticket
     analysis: Analysis | None = None
     status: Literal["ok", "to_check"]
+    draft: str | None = None

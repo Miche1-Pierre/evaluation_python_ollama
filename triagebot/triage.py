@@ -15,11 +15,13 @@ class TriageService:
         for _ in range(MAX_ATTEMPTS):
             try:
                 analysis = self.client.analyze(ticket, feedback)
+                draft = self.client.draft_reply(ticket)
 
                 return TriageResult(
                     ticket=ticket,
                     analysis=analysis,
                     status="ok",
+                    draft=draft if draft.strip() else None,
                 )
 
             except ValidationError as exc:
@@ -29,6 +31,7 @@ class TriageService:
             ticket=ticket,
             analysis=None,
             status="to_check",
+            draft=None
         )
 
     def run(self, tickets: list[Ticket]) -> list[TriageResult]:
