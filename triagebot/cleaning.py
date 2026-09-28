@@ -11,10 +11,11 @@ class TicketCleaner:
         tickets = []
         self.rejected = []
 
+        seen = {}
+
         for item in raw_items:
             try:
                 ticket = Ticket.model_validate(item)
-                tickets.append(ticket)
 
             except ValidationError as exc:
                 item_id = item.get("id") if isinstance(item, dict) else None
@@ -25,5 +26,18 @@ class TicketCleaner:
                         "reason": str(exc),
                     }
                 )
+                continue
+
+            key = (
+                ticket.player,
+                ticket.message.strip().casefold(),
+            )
+
+            if key in seen:
+                print(f"ticket {ticket.id} ignoré : " f"doublon du ticket {seen[key]}")
+                continue
+
+            seen[key] = ticket.id
+            tickets.append(ticket)
 
         return tickets
