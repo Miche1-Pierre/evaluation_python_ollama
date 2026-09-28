@@ -9,6 +9,7 @@ from triagebot.llm import OllamaClient
 from triagebot.models import Ticket
 from triagebot.storage import JsonFile
 from triagebot.triage import TriageService
+from triagebot.cleaning import TicketCleaner
 
 
 def main():
@@ -25,15 +26,13 @@ def main():
 
     client = OllamaClient(args.model)
     service = TriageService(client)
+    cleaner = TicketCleaner()
 
     client.check_ready()
 
     raw_tickets = input_storage.read()
-
-    try:
-        tickets = [Ticket.model_validate(item) for item in raw_tickets]
-    except ValidationError as exc:
-        raise TriageError(f"Ticket invalide dans {args.input} : {exc}") from exc
+    tickets = cleaner.clean(raw_tickets)
+    print(cleaner.rejected)
 
     results = []
 

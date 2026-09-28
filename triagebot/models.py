@@ -1,11 +1,14 @@
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class Ticket(BaseModel):
     id: int
     player: str
-    message: str
+    message: str = Field(min_length=1)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
 
 
 class Analysis(BaseModel):
@@ -21,4 +24,3 @@ class TriageResult(BaseModel):
     ticket: Ticket
     analysis: Analysis | None = None
     status: Literal["ok", "to_check"]
-
