@@ -10,7 +10,12 @@ class OllamaClient:
         self.client = ollama.Client(host=HOST)
         self.model = model
 
-    def analyze(self, ticket: Ticket) -> Analysis:
+    def analyze(self, ticket: Ticket, feedback: str | None = None) -> Analysis:
+        user_message = f"<ticket>{ticket.message}</ticket>"
+
+        if feedback:
+            user_message += f"\n\nTa réponse précédente était invalide : {feedback}"
+
         response = self.client.chat(
             model=self.model,
             messages=[
@@ -20,7 +25,7 @@ class OllamaClient:
                 },
                 {
                     "role": "user",
-                    "content": f"<ticket>{ticket.message}</ticket>",
+                    "content": user_message,
                 },
             ],
             format=Analysis.model_json_schema(),

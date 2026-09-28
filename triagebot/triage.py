@@ -1,3 +1,6 @@
+from pydantic import ValidationError
+
+from triagebot.config import MAX_ATTEMPTS
 from triagebot.llm import OllamaClient
 from triagebot.models import Ticket, TriageResult
 
@@ -5,14 +8,33 @@ from triagebot.models import Ticket, TriageResult
 class TriageService:
     def __init__(self, client: OllamaClient):
         self.client = client
-         
+
     def triage(self, ticket: Ticket) -> TriageResult:
-        analysis = self.client.analyze(ticket)
-        
+        feedback = None
+
+        for _ in range(MAX_ATTEMPTS):
+            try:
+                analysis = self.client.analyze(ticket, feedback)
+
+                return TriageResult(
+                    ticket=ticket,
+                    analysis=analysis,
+                    status="ok",
+                )
+
+            except ValidationError as exc:
+                feedback = str(exc)
+
         return TriageResult(
-            ticket = ticket,
-            analysis = analysis
+            ticket=ticket,
+            analysis=None,
+            status="to_check",
         )
-        
+
     def run(self, tickets: list[Ticket]) -> list[TriageResult]:
-        return [self.triage(ticket) for ticket in tickets]
+        results = []
+
+        for ticket in tickets:
+            results.append(self.triage(ticket))
+
+        return results
