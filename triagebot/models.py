@@ -2,6 +2,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+Category = Literal["bug", "payment", "account", "suggestion", "toxicity", "autre"]
+Escalation = Literal["moderation", "support_manager", "human_review", "standard"]
+
 
 class Ticket(BaseModel):
     id: int
@@ -12,11 +15,10 @@ class Ticket(BaseModel):
 
 
 class Analysis(BaseModel):
-    category: Literal["bug", "feature_request", "billing", "account", "how_to", "other"]
+    category: Category
     sentiment: Literal["positive", "neutral", "negative"]
     severity: int = Field(ge=1, le=5)
     summary: str = Field(min_length=1)
-    toxicity: bool
 
     model_config = ConfigDict(extra="forbid")
 
@@ -26,12 +28,5 @@ class TriageResult(BaseModel):
     analysis: Analysis | None = None
     status: Literal["ok", "to_check"]
     draft: str | None = None
-    escalation: (
-        Literal[
-            "moderation",
-            "support_manager",
-            "human_review",
-            "standard",
-        ]
-        | None
-    ) = None
+    escalation: Escalation | None = None
+    suspicious: bool = False

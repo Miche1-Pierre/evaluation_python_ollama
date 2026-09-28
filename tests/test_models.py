@@ -12,7 +12,6 @@ from triagebot.models import Analysis
             "sentiment": "negative",
             "severity": 3,
             "summary": "Le jeu plante.",
-            "toxicity": False,
         },
     ],
 )
@@ -30,27 +29,23 @@ def test_valid_analysis(data):
             "sentiment": "neutral",
             "severity": 3,
             "summary": "Résumé",
-            "toxicity": False,
         },
         {
             "category": "bug",
             "sentiment": "neutral",
             "severity": 0,
             "summary": "Résumé",
-            "toxicity": False,
         },
         {
             "category": "bug",
             "sentiment": "neutral",
             "severity": 6,
             "summary": "Résumé",
-            "toxicity": False,
         },
         {
             "category": "bug",
             "sentiment": "neutral",
             "severity": 3,
-            "toxicity": False,
         },
     ],
 )

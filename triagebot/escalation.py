@@ -1,27 +1,17 @@
-from typing import Literal
-
 from triagebot.config import ESCALATION_PAYMENT_SEVERITY
-from triagebot.models import TriageResult
-
-Escalation = Literal[
-    "moderation",
-    "support_manager",
-    "human_review",
-    "standard",
-]
+from triagebot.models import Escalation, TriageResult
 
 
 class EscalationPolicy:
     def decide(self, result: TriageResult) -> Escalation:
-        if result.status == "to_check":
+        if result.suspicious or result.status == "to_check" or result.analysis is None:
             return "human_review"
 
-        if result.analysis is not None and result.analysis.toxicity:
+        if result.analysis.category == "toxicity":
             return "moderation"
 
         if (
-            result.analysis is not None
-            and result.analysis.category == "billing"
+            result.analysis.category == "payment"
             and result.analysis.severity >= ESCALATION_PAYMENT_SEVERITY
         ):
             return "support_manager"

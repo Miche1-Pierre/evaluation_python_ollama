@@ -6,7 +6,7 @@ def make_result(
     status="ok",
     category="bug",
     severity=1,
-    toxicity=False,
+    suspicious=False,
 ):
     return TriageResult(
         ticket=Ticket(
@@ -20,12 +20,12 @@ def make_result(
                 sentiment="neutral",
                 severity=severity,
                 summary="Résumé",
-                toxicity=toxicity,
             )
             if status == "ok"
             else None
         ),
         status=status,
+        suspicious=suspicious,
     )
 
 
@@ -36,13 +36,13 @@ def test_to_check_goes_to_human_review():
 
 
 def test_toxicity_goes_to_moderation():
-    result = make_result(toxicity=True)
+    result = make_result(category="toxicity")
 
     assert EscalationPolicy().decide(result) == "moderation"
 
 
-def test_billing_high_severity_goes_to_support_manager():
-    result = make_result(category="billing", severity=4)
+def test_payment_high_severity_goes_to_support_manager():
+    result = make_result(category="payment", severity=4)
 
     assert EscalationPolicy().decide(result) == "support_manager"
 
@@ -53,20 +53,17 @@ def test_standard_ticket_has_no_escalation():
     assert EscalationPolicy().decide(result) == "standard"
 
 
-def test_to_check_has_priority_over_toxicity():
+def test_suspicious_has_priority():
     result = make_result(
-        status="to_check",
-        toxicity=True,
+        category="payment",
+        severity=5,
+        suspicious=True,
     )
 
     assert EscalationPolicy().decide(result) == "human_review"
 
 
-def test_toxicity_has_priority_over_billing():
-    result = make_result(
-        category="billing",
-        severity=5,
-        toxicity=True,
-    )
+def test_payment_low_severity_is_standard():
+    result = make_result(category="payment", severity=3)
 
-    assert EscalationPolicy().decide(result) == "moderation"
+    assert EscalationPolicy().decide(result) == "standard"
